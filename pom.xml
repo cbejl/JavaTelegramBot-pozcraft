@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>net.cbejltpycbl</groupId>
 	<artifactId>PozcraftTeleBot</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0</version>
 	<name>PozcraftTeleBot</name>
 	<description>telegram bot for pozcraft dev</description>
 	<properties>

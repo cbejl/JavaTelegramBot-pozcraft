@@ -6,12 +6,9 @@ import net.cbejltpycbl.PozcraftTeleBot.config.BotConfig;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.ParseMode;
-import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
-import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
@@ -56,6 +53,8 @@ public class TelegramBot extends TelegramLongPollingBot {
             "\nПри желании в комментариях к донату можете указать желаемый кастомный айтем/элемент " +
             "брони, он будет добавлен в ресурспак и будет доступен при переименовывании *предмета-нейм*";
 
+    // Реализованно через хэшмапу, т.к. этого достаточно для целей бота.
+    // Если переделывать под более крупную организацию, то лучше подключать базы данных.
     private static Map<Long, Integer> zaeb = new HashMap<>();
     private static Map<Long, String> whatWant = new HashMap<>();
 
@@ -78,7 +77,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     zaeb.merge(update.getMessage().getChatId(), 1, (x,y) -> x + y);
 
                     if (whatWant.containsKey(chatId) && whatWant.get(chatId) == "IDEA") {
-                        sendToAdmins(update, "Новоя идея от @");
+                        sendToAdmins(update, "Новая идея от @");
                         sendMessage(chatId, "Готово! Ваша идея принята на рассмотрение!");
                     } else if (whatWant.containsKey(chatId) && whatWant.get(chatId) == "JOB") {
                         sendToAdmins(update, "Новое резюме от @");
@@ -120,7 +119,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private static InlineKeyboardMarkup standardKeyboard() {
+    private static InlineKeyboardMarkup standardKeyboard() { //выдает стандартный набор кнопок
         InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
         List<InlineKeyboardButton> rowInLine = new ArrayList<>();
@@ -146,7 +145,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         return markupInLine;
     }
 
-    private static InlineKeyboardMarkup goBackKeyboard() {
+    private static InlineKeyboardMarkup goBackKeyboard() { //выдает кнопку НАЗАД
         InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
         List<InlineKeyboardButton> rowInLine = new ArrayList<>();
@@ -161,7 +160,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         return markupInLine;
     }
 
-    private void executeEditMessageText(long chatId, long messageId, String messageText, String keyboard) {
+    private void executeEditMessageText(long chatId, long messageId, String messageText, String keyboard) { //редактирует сообщение
         EditMessageText message = new EditMessageText();
         message.setChatId(chatId);
         message.setMessageId((int) messageId);
@@ -185,7 +184,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private void executeEditMessageTextWithMemory(long chatId, long messageId, String messageText, String whatIs) {
+    private void executeEditMessageTextWithMemory(long chatId, long messageId, String messageText, String whatIs) { //редактирует сообщение + запоминает на какой вкладке находится пользователь
         EditMessageText message = new EditMessageText();
         message.setChatId(chatId);
         message.setMessageId((int) messageId);
@@ -201,7 +200,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             log.error("Error: " + e.getMessage() + " (ошибка при отправке сообщения)");
         }
     }
-    private void sendMessage(long chatId, String textToSend) {
+    private void sendMessage(long chatId, String textToSend) { //отправка сообщения
         SendMessage message = new SendMessage();
         message.setChatId(chatId);
         message.setParseMode(ParseMode.HTML);
@@ -215,10 +214,12 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private void sendToAdmins(Update update, String whatIs) {
-        for(int id : getAdmins()) {
+    // Практичней было бы сделать отдельного админского бота, через который уже бы и происходила работа с идеями и заявками
+    // Но, опять же, для моих целей этого было достаточно.
+    private void sendToAdmins(Update update, String whatIs) { //отрпавляет сообщение пользователя администрации
+        for(long id : getAdmins()) {
             SendMessage message = new SendMessage();
-            message.setChatId(update.getMessage().getChatId());
+            message.setChatId(id);
             message.setText(userMessageGenerator(update, whatIs));
             try {
                 execute(message);
@@ -229,7 +230,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         whatWant.put(update.getMessage().getChatId(), "");
     }
 
-    private String userMessageGenerator(Update update, String whatIs) {
+    private String userMessageGenerator(Update update, String whatIs) { //создает красивое письмицо, которое будет отправленно администрации
         StringBuilder sb = new StringBuilder();
         sb.append(whatIs + update.getMessage().getChat().getUserName() + " !\n\n");
         sb.append("\"" + update.getMessage().getText() + "\"");
@@ -248,10 +249,6 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     public int[] getAdmins() {
         return config.getAdmins();
-    }
-
-    public boolean hasAdmin(int id) {
-        return Ints.contains(config.getAdmins(), id);
     }
 
 }
